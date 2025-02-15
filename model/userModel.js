@@ -1,18 +1,25 @@
-// models/userModel.js
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../database/db');  // Sequelize instance
 
-// Define a User model
+// Define the User model
 const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique: true,  // Ensure unique names
   },
-  email: {
+  password: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
+    allowNull: false,  // Store hashed password
   },
+}, {
+  timestamps: true,  // Automatically adds createdAt and updatedAt
+  tableName: 'users', // Explicit table name in PostgreSQL
 });
 
 module.exports = User;

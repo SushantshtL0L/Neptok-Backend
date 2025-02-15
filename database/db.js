@@ -1,10 +1,12 @@
 // database/db.js
 const { Sequelize } = require('sequelize');
+require('dotenv').config(); // Load environment variables
 
-// Set up Sequelize connection
-const sequelize = new Sequelize('neptok_db', 'postgres', 'admin123', {
-  host: 'localhost',
+// Connect to PostgreSQL
+const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
+  host: process.env.DB_HOST,
   dialect: 'postgres',
+  logging: false, // Disable logging in production
 });
 
 sequelize.authenticate()
