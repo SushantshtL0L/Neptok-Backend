@@ -1,17 +1,14 @@
-// routes/userRoutes.js
 const express = require('express');
-const { getAllUsers, addUser, loginUser } = require('../controllers/userController');
-
 const router = express.Router();
+const userController = require('../controllers/userController');
 
-// Base Route
-router.get('/', (req, res) => {
-  res.json({ message: 'Welcome to the API!' });
-});
 
-// Define routes for GET, POST, and login
-router.get('/users', getAllUsers);
-router.post('/users', addUser);
-router.post('/users/login', loginUser);
+console.log('userController:', userController);
+// Public routes (no authentication required)
+router.post('/add', userController.addUser);
+
+router.post('/login', userController.login);
+
+
 
 module.exports = router;
