@@ -46,6 +46,31 @@ app.post('/login', (req, res) => {
     res.send("Welcome to the web page");
 });
 
+app.post('/add', async (req, res) => {
+    const { username,  password } = req.body;
+
+    if (!username ||  !password) {
+        return res.status(400).json({ success: false, message: "Please provide username, email, and password" });
+    }
+
+    try {
+        // Check if user exists
+        const existingUser = await User.findOne({ where: { username} });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: "User already exists" });
+        }
+
+        // Create user (assuming beforeCreate hooks handle password hashing)
+        const newUser = await User.create({ username, password });
+
+        res.status(201).json({ success: true, message: "Registration successful", data: newUser });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: "Something went wrong" });
+    }
+});
+
+
 
 
 app.use('/users', userRoute);
