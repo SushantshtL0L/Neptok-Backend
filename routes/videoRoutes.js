@@ -1,19 +1,20 @@
 const express = require('express');
-const { uploadVideo, getVideos, likeVideo, addComment, upload } = require('../controllers/videoController');
-const authMiddleware = require('../middleware/authMiddleware');
-
 const router = express.Router();
+const upload = require('../middleware/videoUpload'); // Import upload middleware
+const videoController = require('../controllers/videoController'); // Import controller
 
-// Upload a video (protected route)
-router.post('/upload', authMiddleware, upload.single('video'), uploadVideo);
+// Add a new video (upload a video)
+router.post('/videos', videoController.addVideo);
+// Get all videos
+router.get('/', videoController.getAllVideos);
 
-// Fetch all videos
-router.get('/videos', getVideos);
+// Get a single video by ID
+router.get('/:id', videoController.getVideoById);
 
-// Like a video (protected route)
-router.post('/videos/:videoId/like', authMiddleware, likeVideo);
+// Get videos by a specific user
+router.get('/user/:userId', videoController.getVideosByUser);
 
-// Add a comment to a video (protected route)
-router.post('/videos/:videoId/comment', authMiddleware, addComment);
+// Delete a video by ID
+router.delete('/:id', videoController.deleteVideo);
 
 module.exports = router;

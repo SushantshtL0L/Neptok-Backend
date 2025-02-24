@@ -1,91 +1,101 @@
-const Video = require('../models/Video');
-const User = require('../models/User');
-const multer = require('multer');
-const path = require('path');
+const Video = require("../model/Video");
+const { Op } = require("sequelize");
 
-// Multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Append timestamp to filename
-  },
-});
-
-const upload = multer({ storage });
-
-// Upload a video
-const uploadVideo = async (req, res) => {
+// Add a new Video
+exports.addVideo = async (req, res) => {
   try {
-    const { userId } = req.body;
-    const file = req.file;
+    // Destructure required fields from request body
+    const { user_id, video_url, description } = req.body;
 
-    if (!file) {
-      return res.status(400).json({ error: 'No file uploaded.' });
+    // Input validation
+    if (!user_id || !video_url) {
+      return res.status(400).json({ 
+        error: "User ID and video URL are required fields" 
+      });
     }
 
-    const video = await Video.create({
-      filename: file.filename,
-      path: file.path,
-      userId,
+    // Create new video record in database
+    const newVideo = await Video.create({
+      user_id,        // Foreign key linking to user who uploaded
+      video_url,      // URL where video is hosted
+      description     // Optional video description
     });
 
-    res.status(201).json({ message: 'Video uploaded successfully!', video });
+    // Return success response with created video
+    return res.status(201).json(newVideo);
+
   } catch (error) {
-    res.status(500).json({ error: 'Error uploading video.' });
+    // Log error and return error response
+    console.error("Error adding video:", error);
+    return res.status(500).json({ 
+      error: "Internal server error while adding video" 
+    });
   }
 };
 
-// Fetch all videos
-const getVideos = async (req, res) => {
+// Get all Videos
+exports.getAllvideo = async (req, res) => {
   try {
-    const videos = await Video.findAll({ include: User });
+    const videos = await Video.findAll({
+      attributes: { exclude: ["createdAt", "updatedAt"] } // Exclude timestamps if needed
+    });
     res.status(200).json(videos);
-  } catch (error) {
-    res.status(500).json({ error: 'Error fetching videos.' });
+  } catch (err) {
+    console.error("Error fetching videos:", err);
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Like a video
-const likeVideo = async (req, res) => {
+// Get a single Video by ID
+exports.getvideoById = async (req, res) => {
   try {
-    const { videoId } = req.params;
+    const video = await Video.findByPk(req.params.id);
+    if (!video) return res.status(404).json({ error: "Video not found" });
+    res.status(200).json(video);
+  } catch (err) {
+    console.error("Error fetching video:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
-    const video = await Video.findByPk(videoId);
-    if (!video) {
-      return res.status(404).json({ error: 'Video not found.' });
+// Get Videos by Name (case-insensitive search)
+exports.getvideoByName = async (req, res) => {
+  try {
+    const videoName = req.params.video_name.trim(); // Trim spaces from video name
+    if (!videoName) {
+      return res.status(400).json({ error: "Video name is required" });
     }
 
-    video.likes += 1;
-    await video.save();
+    const videos = await Video.findAll({
+      where: {
+        video_name: {
+          [Op.iLike]: `%${videoName}%` // Case-insensitive search
+        }
+      },
+      attributes: ["video_id", "video_name", "thumbnail_url", "youtube_link"] // Updated to thumbnail_url
+    });
 
-    res.status(200).json({ message: 'Video liked!', video });
-  } catch (error) {
-    res.status(500).json({ error: 'Error liking video.' });
-  }
-};
-
-// Add a comment to a video
-const addComment = async (req, res) => {
-  try {
-    const { videoId } = req.params;
-    const { comment } = req.body;
-
-    const video = await Video.findByPk(videoId);
-    if (!video) {
-      return res.status(404).json({ error: 'Video not found.' });
+    if (videos.length === 0) {
+      return res.status(404).json({ error: "No videos found" });
     }
 
-    // Assuming comments are stored as an array in the Video model
-    video.comments = video.comments || [];
-    video.comments.push(comment);
-    await video.save();
-
-    res.status(200).json({ message: 'Comment added!', video });
-  } catch (error) {
-    res.status(500).json({ error: 'Error adding comment.' });
+    res.status(200).json(videos);
+  } catch (err) {
+    console.error("Error fetching videos:", err);
+    res.status(500).json({ error: err.message });
   }
 };
 
-module.exports = { uploadVideo, getVideos, likeVideo, addComment, upload };
+// Delete a Video by ID
+exports.deletevideo = async (req, res) => {
+  try {
+    const video = await Video.findByPk(req.params.id);
+    if (!video) return res.status(404).json({ error: "Video not found" });
+
+    await video.destroy();
+    res.status(200).json({ message: "Video deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting video:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
