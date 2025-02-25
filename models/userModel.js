@@ -1,7 +1,7 @@
 const { Sequelize, DataTypes } = require('sequelize');
-const bcrypt = require('bcrypt');
-const sequelize = require('../database/db');
+const sequelize = require('../database/db');  // Sequelize instance
 
+// Define the User model
 const User = sequelize.define('User', {
   id: {
     type: DataTypes.INTEGER,
@@ -11,26 +11,15 @@ const User = sequelize.define('User', {
   name: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    unique: true,  // Ensure unique names
   },
   password: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: false,  // Store hashed password
   },
 }, {
-  timestamps: true,
-  tableName: 'users',
+  timestamps: true,  // Automatically adds createdAt and updatedAt
+  tableName: 'users', // Explicit table name in PostgreSQL
 });
-
-User.beforeCreate(async (user) => {
-  if (user.password) {
-    const hashedPassword = await bcrypt.hash(user.password, 10);
-    user.password = hashedPassword;
-  }
-});
-
-User.prototype.comparePassword = async function(password) {
-  return await bcrypt.compare(password, this.password);
-};
 
 module.exports = User;

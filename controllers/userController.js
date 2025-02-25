@@ -63,44 +63,57 @@ const getAllUsers = async (req, res) => {
     }
   };
   
+  const login = async (req, res) => {
+    const { username, password } = req.body;
 
-  const login = async(req, res) =>{
-    const {name, password} = req.body;
-     //validate username and password
-    if(!name || !password){
-        return res.status(400).json({
-            error: "Please Insert username and password"
-        })
+    if (!username || !password) {
+        return res.status(400).json({ error: "Please provide username and password" });
     }
-    try{
-        const user = await User.findOne({where: {name}})
-        if(!user){
-            return res.status(400).json({
-                error: "New user required"
-            })
+
+    try {
+
+       // Log the received username
+       console.log("Username received in login:", username);
+
+       
+        // Find user by username
+        const user = await User.findOne({ where: { name: username } });
+
+
+        if (!user) {
+            return res.status(400).json({ error: "User not found" });
         }
-        const isMatch = await bcrypt.compare(password, user.password)
-        if(!isMatch){
-            return res.status(400).json({
-                error: "Insert proper password!!!!"
-            })
+
+        if (!user.password) {
+            return res.status(500).json({ error: "User password is missing in the database" });
         }
+
+        // Log for debugging
+        console.log("Entered Password:", password);
+        console.log("Stored Hashed Password:", user.password);
+
+        // Compare passwords
+        const isMatch = await bcrypt.compare(password, user.password);
+        console.log("Password match result:", isMatch);  // Log result of comparison
+
+        if (!isMatch) {
+            return res.status(400).json({ error: "Invalid credentials" });
+        }
+
+        // Generate JWT token
         const token = jwt.sign(
-            {id: user.username, username: user.name},
-            process.env.JWT_SECRET || 'FVHJAFJHSFVBSFBSSFJSF',
-            {expiresIn: '24h'}
+            { userId: user.id, username: user.name },
+            'your_secret_key',
+            { expiresIn: '1h' }
+        );
 
-        )
-        res.status(200).json({message: "Successfully Logged in", token},
-            
+        // Return token in response
+        return res.status(200).json({ message: "Login successful", token });
 
-        )
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Something went wrong" });
     }
-    catch(error){
-        res.status(500).json({error: "Something went Wrong"});
-        console.log(error)
-    
-    }
+};
 
-}
 module.exports = { getAllUsers, addUser,login };

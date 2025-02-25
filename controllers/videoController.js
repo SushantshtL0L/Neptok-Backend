@@ -1,101 +1,62 @@
-const Video = require("../model/Video");
-const { Op } = require("sequelize");
+// 
 
-// Add a new Video
-exports.addVideo = async (req, res) => {
-  try {
-    // Destructure required fields from request body
-    const { user_id, video_url, description } = req.body;
 
-    // Input validation
-    if (!user_id || !video_url) {
-      return res.status(400).json({ 
-        error: "User ID and video URL are required fields" 
-      });
-    }
 
-    // Create new video record in database
-    const newVideo = await Video.create({
-      user_id,        // Foreign key linking to user who uploaded
-      video_url,      // URL where video is hosted
-      description     // Optional video description
-    });
 
-    // Return success response with created video
-    return res.status(201).json(newVideo);
 
-  } catch (error) {
-    // Log error and return error response
-    console.error("Error adding video:", error);
-    return res.status(500).json({ 
-      error: "Internal server error while adding video" 
-    });
+
+const multer = require('multer');
+const path = require('path');
+
+// Set up storage for uploaded files
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+// File filter to allow only video files
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['video/mp4', 'video/mpeg', 'video/quicktime'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true); // Accept the file
+  } else {
+    cb(new Error('Invalid file type. Only video files are allowed.'), false);
   }
 };
 
-// Get all Videos
-exports.getAllvideo = async (req, res) => {
-  try {
-    const videos = await Video.findAll({
-      attributes: { exclude: ["createdAt", "updatedAt"] } // Exclude timestamps if needed
-    });
-    res.status(200).json(videos);
-  } catch (err) {
-    console.error("Error fetching videos:", err);
-    res.status(500).json({ error: err.message });
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit
+});
+
+// Middleware for handling file upload
+const uploadVideo = upload.single('video');
+
+// Controller function for handling the upload
+const handleVideoUpload = (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded or invalid file type' });
   }
+
+  // File uploaded successfully
+  res.json({ message: 'File uploaded successfully', file: req.file });
 };
 
-// Get a single Video by ID
-exports.getvideoById = async (req, res) => {
-  try {
-    const video = await Video.findByPk(req.params.id);
-    if (!video) return res.status(404).json({ error: "Video not found" });
-    res.status(200).json(video);
-  } catch (err) {
-    console.error("Error fetching video:", err);
-    res.status(500).json({ error: err.message });
+// Error handling middleware
+const handleUploadError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    // Handle Multer errors (e.g., file size limit exceeded)
+    return res.status(400).json({ message: err.message });
+  } else if (err) {
+    // Handle other errors (e.g., invalid file type)
+    return res.status(400).json({ message: err.message });
   }
+  next();
 };
 
-// Get Videos by Name (case-insensitive search)
-exports.getvideoByName = async (req, res) => {
-  try {
-    const videoName = req.params.video_name.trim(); // Trim spaces from video name
-    if (!videoName) {
-      return res.status(400).json({ error: "Video name is required" });
-    }
-
-    const videos = await Video.findAll({
-      where: {
-        video_name: {
-          [Op.iLike]: `%${videoName}%` // Case-insensitive search
-        }
-      },
-      attributes: ["video_id", "video_name", "thumbnail_url", "youtube_link"] // Updated to thumbnail_url
-    });
-
-    if (videos.length === 0) {
-      return res.status(404).json({ error: "No videos found" });
-    }
-
-    res.status(200).json(videos);
-  } catch (err) {
-    console.error("Error fetching videos:", err);
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Delete a Video by ID
-exports.deletevideo = async (req, res) => {
-  try {
-    const video = await Video.findByPk(req.params.id);
-    if (!video) return res.status(404).json({ error: "Video not found" });
-
-    await video.destroy();
-    res.status(200).json({ message: "Video deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting video:", err);
-    res.status(500).json({ error: err.message });
-  }
-};
+module.exports = { uploadVideo, handleVideoUpload, handleUploadError };
