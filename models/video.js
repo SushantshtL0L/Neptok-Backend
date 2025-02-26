@@ -1,5 +1,4 @@
-// models/Video.js
-const { DataTypes } = require('sequelize');
+const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../database/db'); // Adjust the path to your Sequelize instance
 
 const Video = sequelize.define('Video', {
@@ -11,6 +10,7 @@ const Video = sequelize.define('Video', {
   user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    defaultValue: 0, // or any other default value
   },
   video_url: {
     type: DataTypes.STRING,
@@ -38,4 +38,4 @@ const Video = sequelize.define('Video', {
   },
 });
 
-module.exports = Video;
+module.exports = Video;
