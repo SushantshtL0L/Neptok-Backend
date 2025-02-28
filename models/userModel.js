@@ -17,6 +17,10 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: false,  // Store hashed password
   },
+  bio: {
+    type: DataTypes.STRING,
+    allowNull: true,  
+  },
 }, {
   timestamps: true,  // Automatically adds createdAt and updatedAt
   tableName: 'users', // Explicit table name in PostgreSQL

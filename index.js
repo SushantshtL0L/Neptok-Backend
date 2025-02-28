@@ -550,12 +550,12 @@ app.post('/upload', upload.single('video'), async (req, res) => {
 app.use('/api/videos', videoRoutes);
 
 // Profile Routes
-profileRoutes.get('/profile/:username', async (req, res) => {
-  const { username } = req.params;
-  console.log('Received username:', username);  // Add this to check if the username is passed
+profileRoutes.get('/profile/:name', async (req, res) => {
+  const { name } = req.params;
+  console.log('Received name:', name);  // Add this to check if the name is passed
 
   try {
-    const user = await User.findOne({ where: { name: username } });
+    const user = await User.findOne({ where: { name: name } });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -568,6 +568,61 @@ profileRoutes.get('/profile/:username', async (req, res) => {
 });
 
 app.use('/api', profileRoutes); // Prefixing all profile routes with /api
+
+
+
+app.put('/api/:id/update', upload.single('profilepicture'), async (req, res) => {
+  console.log('Uploaded file:', req.file);
+  console.log('Request body:', req.body);
+
+  const { id } = req.params; // Get the ID from the URL
+  const { name, bio, currentPassword, newPassword } = req.body; // Fields to update
+
+  try {
+    const user = await User.findByPk(id); // Find user by ID (primary key)
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update name if provided
+    if (name) {
+      user.name = name;
+    }
+    // Update bio if provided
+    if (bio) {
+      user.bio = bio;
+    }
+
+    // Update password if both current and new passwords are provided
+    if (currentPassword && newPassword) {
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+      user.password = await bcrypt.hash(newPassword, 10); // Hash new password
+    }
+
+    // Update profile picture if uploaded (uncomment and adjust as needed)
+    if (req.file) {
+      user.profilePicture = req.file.path.replace('\\', '/');
+    }
+
+    await user.save();
+
+    // Return updated user data
+    res.json({
+      name: user.name,
+      bio: user.bio,
+      profilePicture: user.profilePicture,
+    });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
 
 // Default route to check server status
 app.get('/', (req, res) => {
